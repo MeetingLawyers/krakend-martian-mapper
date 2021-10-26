@@ -1,4 +1,4 @@
-package body
+package querystring
 
 import (
 	"encoding/json"
@@ -8,19 +8,17 @@ import (
 )
 
 func init() {
-	parse.Register("body.JSON-Mapper", MapperFromJSON)
+	parse.Register("querystring.JSONMapper", MapperFromJSON)
 }
 
 // MappingConfigJSON to Unmarshal the JSON configuration
 type MappingConfigJSON struct {
-	//Public  string               `json:"public"`
-	//Private string               `json:"private"`
 	Scope   []parse.ModifierType `json:"scope"`
 }
 
 // Mapping contains the private and public Marvel API key
 type Mapping struct {
-	public, private string
+
 }
 // ModifyRequest modifies the query string of the request with the given key and value.
 func (m *Mapping) ModifyRequest(req *http.Request) error {
@@ -40,10 +38,9 @@ func (m *Mapping) ModifyRequest(req *http.Request) error {
 // MapperNewModifier returns a request modifier that will set the query string
 // at key with the given value. If the query string key already exists all
 // values will be overwritten.
-func MapperNewModifier(public, private string) martian.RequestModifier {
+func MapperNewModifier() martian.RequestModifier {
 	return &Mapping{
-		public:  public,
-		private: private,
+
 	}
 }
 
@@ -64,5 +61,5 @@ func MapperFromJSON(b []byte) (*parse.Result, error) {
 		return nil, err
 	}
 
-	return parse.NewResult(MapperNewModifier("", "" ), configByteSlice.Scope)
+	return parse.NewResult(MapperNewModifier(), configByteSlice.Scope)
 }
