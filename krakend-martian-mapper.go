@@ -1,4 +1,4 @@
-package martian_mapper
+package body
 
 import (
 	"encoding/json"
