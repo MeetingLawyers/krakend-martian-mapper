@@ -7,6 +7,10 @@ import (
 	"net/http"
 )
 
+func init() {
+	parse.Register("body.JSON-Mapper", MapperFromJSON)
+}
+
 // MappingConfigJSON to Unmarshal the JSON configuration
 type MappingConfigJSON struct {
 	//Public  string               `json:"public"`
