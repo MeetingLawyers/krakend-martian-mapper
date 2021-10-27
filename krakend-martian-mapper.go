@@ -2,6 +2,7 @@ package querystring
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/google/martian"
 	"github.com/google/martian/parse"
 	"io"
@@ -26,6 +27,8 @@ type Mapping struct {
 }
 // ModifyRequest modifies the query string of the request with the given key and value.
 func (m *Mapping) ModifyRequest(req *http.Request) error {
+	fmt.Println("Modify Request")
+
 	query := req.URL.Query()
 	query.Set("chorizo", "yes")
 
@@ -39,8 +42,10 @@ func (m *Mapping) ModifyRequest(req *http.Request) error {
 	if err != nil {
 		panic(err)
 	}
-
+	fmt.Println(m.fields)
 	for actualKey, newKey := range m.fields {
+		fmt.Println("Modify field ")
+		fmt.Println(actualKey)
 
 		if query.Get(actualKey) != "" {
 			query.Set(newKey, query.Get(actualKey))
@@ -51,6 +56,7 @@ func (m *Mapping) ModifyRequest(req *http.Request) error {
 		delete(bodyjson, actualKey)
 	}
 
+	fmt.Println("End Loop")
 	new_body_content, _ := json.Marshal(bodyjson)
 	req.Body = ioutil.NopCloser(strings.NewReader(string(new_body_content)))
 
