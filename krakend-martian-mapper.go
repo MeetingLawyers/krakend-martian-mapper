@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"log"
 )
 
 func init() {
@@ -27,7 +28,7 @@ type Mapping struct {
 }
 // ModifyRequest modifies the query string of the request with the given key and value.
 func (m *Mapping) ModifyRequest(req *http.Request) error {
-	fmt.Println("Modify Request")
+	log.Println("Modify Request")
 
 	query := req.URL.Query()
 	query.Set("chorizo", "yes")
@@ -42,10 +43,10 @@ func (m *Mapping) ModifyRequest(req *http.Request) error {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(m.fields)
+	log.Println(m.fields)
 	for actualKey, newKey := range m.fields {
-		fmt.Println("Modify field ")
-		fmt.Println(actualKey)
+		log.Println("Modify field ")
+		log.Println(actualKey)
 
 		if query.Get(actualKey) != "" {
 			query.Set(newKey, query.Get(actualKey))
@@ -56,13 +57,13 @@ func (m *Mapping) ModifyRequest(req *http.Request) error {
 		delete(bodyjson, actualKey)
 	}
 
-	fmt.Println("End Loop")
+	log.Println("End Loop")
 	new_body_content, _ := json.Marshal(bodyjson)
 	req.Body = ioutil.NopCloser(strings.NewReader(string(new_body_content)))
 
 	// Recibido por referencia (puntero), lo altera directamente
 	req.URL.RawQuery = query.Encode()
-	fmt.Println("End")
+	log.Println("End")
 	return nil
 }
 
