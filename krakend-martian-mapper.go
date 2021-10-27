@@ -62,7 +62,7 @@ func (m *Mapping) ModifyRequest(req *http.Request) error {
 
 	// Recibido por referencia (puntero), lo altera directamente
 	req.URL.RawQuery = query.Encode()
-
+	fmt.Println("End")
 	return nil
 }
 
