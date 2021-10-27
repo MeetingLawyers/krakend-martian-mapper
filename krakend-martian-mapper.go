@@ -4,7 +4,10 @@ import (
 	"encoding/json"
 	"github.com/google/martian"
 	"github.com/google/martian/parse"
+	"io"
+	"io/ioutil"
 	"net/http"
+	"strings"
 )
 
 func init() {
@@ -13,21 +16,43 @@ func init() {
 
 // MappingConfigJSON to Unmarshal the JSON configuration
 type MappingConfigJSON struct {
-	Scope   []parse.ModifierType `json:"scope"`
+	Fields map[string]string `json:"fields"`
+	Scope  []parse.ModifierType `json:"scope"`
 }
 
 // Mapping contains the private and public Marvel API key
 type Mapping struct {
-
+	fields map[string]string
 }
 // ModifyRequest modifies the query string of the request with the given key and value.
 func (m *Mapping) ModifyRequest(req *http.Request) error {
 	query := req.URL.Query()
 	query.Set("chorizo", "yes")
-	//	ts := strconv.FormatInt(time.Now().Unix(), 10)
-	//	hash := GetMD5Hash(ts + m.private + m.public)
-//	query.Set("ts", ts)
-//	query.Set("hash", hash)
+
+	bodyBytes, err := io.ReadAll(req.Body)
+	if err != nil {
+		panic(err)
+	}
+
+	var bodyjson = make(map[string]string)
+	err = json.Unmarshal(bodyBytes, &bodyjson)
+	if err != nil {
+		panic(err)
+	}
+
+	for actualKey, newKey := range m.fields {
+
+		if query.Get(actualKey) != "" {
+			query.Set(newKey, query.Get(actualKey))
+			query.Del(actualKey)
+		}
+
+		bodyjson[newKey] = bodyjson[actualKey]
+		delete(bodyjson, actualKey)
+	}
+
+	new_body_content, _ := json.Marshal(bodyjson)
+	req.Body = ioutil.NopCloser(strings.NewReader(string(new_body_content)))
 
 	// Recibido por referencia (puntero), lo altera directamente
 	req.URL.RawQuery = query.Encode()
@@ -38,9 +63,9 @@ func (m *Mapping) ModifyRequest(req *http.Request) error {
 // MapperNewModifier returns a request modifier that will set the query string
 // at key with the given value. If the query string key already exists all
 // values will be overwritten.
-func MapperNewModifier() martian.RequestModifier {
+func MapperNewModifier(mappingFields map[string]string) martian.RequestModifier {
 	return &Mapping{
-
+		fields: mappingFields,
 	}
 }
 
@@ -61,5 +86,5 @@ func MapperFromJSON(b []byte) (*parse.Result, error) {
 		return nil, err
 	}
 
-	return parse.NewResult(MapperNewModifier(), configByteSlice.Scope)
+	return parse.NewResult(MapperNewModifier(configByteSlice.Fields), configByteSlice.Scope)
 }
