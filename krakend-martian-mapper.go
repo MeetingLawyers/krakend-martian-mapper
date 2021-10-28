@@ -2,7 +2,6 @@ package querystring
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/google/martian"
 	"github.com/google/martian/parse"
 	"io"
