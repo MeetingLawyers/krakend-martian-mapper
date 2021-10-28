@@ -28,14 +28,20 @@ type Mapping struct {
 
 // ModifyRequest modifies the query string of the request with the given key and value.
 func (m *Mapping) ModifyRequest(req *http.Request) error {
-	log.Println("Modify Request ----------------------")
-	query := req.URL.Query()
-	query.Set("chorizo", "yes")
+	log.Println("Request Modifier ----------------------")
 
 	bodyBytes, err := io.ReadAll(req.Body)
 	if err != nil {
 		panic(err)
 	}
+
+	query := req.URL.Query()
+	log.Println("Body original:" + string(bodyBytes))
+	log.Println("Query original:" + string(req.URL.RawQuery))
+
+	log.Println("Start Modifier ------------------------")
+	query.Set("chorizo", "yes")
+
 
 	var bodyjson = make(map[string]string)
 	err = json.Unmarshal(bodyBytes, &bodyjson)
