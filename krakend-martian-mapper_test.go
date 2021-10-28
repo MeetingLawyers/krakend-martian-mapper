@@ -2,22 +2,70 @@ package mapper
 
 import (
 	"bytes"
-	"encoding/json"
 	"io"
 	"net/http"
 	"testing"
 )
 
-func TestMap(t *testing.T) {
+func TestEmptyBody(t *testing.T) {
 	// Arrange
 	cfg := `{"source": "request", "map_fields": { "user_id": "token" }}`
-	requestBody := map[string]string{"user_id": "John Doe", "occupation": "gardener"}
+	requestBody := ""
 	url := "http://example.com?irrelevant=false&user_id=12345"
 	requestType := "POST"
 
 	modifier, _ := MapperFromJSON([]byte(cfg))
-	json_data, _ := json.Marshal(requestBody)
-	req, _ := http.NewRequest(requestType, url, bytes.NewBuffer(json_data))
+	req, _ := http.NewRequest(requestType, url, bytes.NewBuffer( []byte(requestBody) ))
+
+	// Act
+	modifier.RequestModifier().ModifyRequest(req)
+
+	// Assert
+	bodyBytes, _ := io.ReadAll(req.Body)
+	expectedBody := ``
+	if string(bodyBytes) != expectedBody {
+		t.Errorf("Expected output <%s> different than obtained <%s>", expectedBody, string(bodyBytes))
+	}
+	expectedQuery := "irrelevant=false&token=12345"
+	if string(req.URL.RawQuery) != expectedQuery {
+		t.Errorf("Expected query <%s> different than obtained <%s>", expectedQuery, string(req.URL.RawQuery))
+	}
+}
+
+func TestNotValidJsonBody(t *testing.T) {
+	// Arrange
+	cfg := `{"source": "request", "map_fields": { "user_id": "token" }}`
+	requestBody := `{"invalidjson": {[}]}`
+	url := "http://example.com?irrelevant=false&user_id=12345"
+	requestType := "POST"
+
+	modifier, _ := MapperFromJSON([]byte(cfg))
+	req, _ := http.NewRequest(requestType, url, bytes.NewBuffer( []byte(requestBody) ))
+
+	// Act
+	modifier.RequestModifier().ModifyRequest(req)
+
+	// Assert
+	bodyBytes, _ := io.ReadAll(req.Body)
+	expectedBody := ``
+	if string(bodyBytes) != expectedBody {
+		t.Errorf("Expected output <%s> different than obtained <%s>", expectedBody, string(bodyBytes))
+	}
+	expectedQuery := "irrelevant=false&token=12345"
+	if string(req.URL.RawQuery) != expectedQuery {
+		t.Errorf("Expected query <%s> different than obtained <%s>", expectedQuery, string(req.URL.RawQuery))
+	}
+}
+
+func TestMap(t *testing.T) {
+	// Arrange
+	cfg := `{"source": "request", "map_fields": { "user_id": "token" }}`
+	requestBody := `{"user_id": "John Doe", "occupation": "gardener"}`
+	url := "http://example.com?irrelevant=false&user_id=12345"
+	requestType := "POST"
+
+	modifier, _ := MapperFromJSON([]byte(cfg))
+	req, _ := http.NewRequest(requestType, url, bytes.NewBuffer( []byte(requestBody) ))
 
 	// Act
 	modifier.RequestModifier().ModifyRequest(req)
@@ -37,13 +85,12 @@ func TestMap(t *testing.T) {
 func TestCopy(t *testing.T) {
 	// Arrange
 	cfg := `{"source": "request", "copy_fields": { "user_id": "token" }}`
-	requestBody := map[string]string{"user_id": "John Doe", "occupation": "gardener"}
+	requestBody := `{"user_id": "John Doe", "occupation": "gardener"}`
 	url := "http://example.com?irrelevant=false&user_id=12345"
 	requestType := "POST"
 
 	modifier, _ := MapperFromJSON([]byte(cfg))
-	json_data, _ := json.Marshal(requestBody)
-	req, _ := http.NewRequest(requestType, url, bytes.NewBuffer(json_data))
+	req, _ := http.NewRequest(requestType, url, bytes.NewBuffer( []byte(requestBody) ))
 
 	// Act
 	modifier.RequestModifier().ModifyRequest(req)
@@ -63,13 +110,12 @@ func TestCopy(t *testing.T) {
 func TestBothMapOverrides(t *testing.T) {
 	// Arrange
 	cfg := `{"source": "request", "copy_fields": { "user_id": "token", "occupation": "job" }, "map_fields": { "user_id": "token" }}`
-	requestBody := map[string]string{"user_id": "John Doe", "occupation": "gardener"}
+	requestBody := `{"user_id": "John Doe", "occupation": "gardener"}`
 	url := "http://example.com?irrelevant=false&user_id=12345&occupation=writer"
 	requestType := "POST"
 
 	modifier, _ := MapperFromJSON([]byte(cfg))
-	json_data, _ := json.Marshal(requestBody)
-	req, _ := http.NewRequest(requestType, url, bytes.NewBuffer(json_data))
+	req, _ := http.NewRequest(requestType, url, bytes.NewBuffer( []byte(requestBody) ))
 
 	// Act
 	modifier.RequestModifier().ModifyRequest(req)

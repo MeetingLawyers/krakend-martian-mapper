@@ -35,18 +35,21 @@ func (m *Mapping) ModifyRequest(req *http.Request) error {
 	}
 
 	query := req.URL.Query()
-
-	var bodyjson = make(map[string]string)
-	err = json.Unmarshal(bodyBytes, &bodyjson)
+	var bodyJson = make(map[string]string)
+	err = json.Unmarshal(bodyBytes, &bodyJson)
+	var bodyEmpty = false
 	if err != nil {
-		panic(err)
+		bodyEmpty = true
 	}
 	for actualKey, newKey := range m.copyFields {
 		if query.Get(actualKey) != "" {
 			query.Set(newKey, query.Get(actualKey))
 		}
 
-		bodyjson[newKey] = bodyjson[actualKey]
+		if bodyEmpty {
+			continue
+		}
+		bodyJson[newKey] = bodyJson[actualKey]
 	}
 	for actualKey, newKey := range m.mapFields {
 		if query.Get(actualKey) != "" {
@@ -54,12 +57,20 @@ func (m *Mapping) ModifyRequest(req *http.Request) error {
 			query.Del(actualKey)
 		}
 
-		bodyjson[newKey] = bodyjson[actualKey]
-		delete(bodyjson, actualKey)
+		if bodyEmpty {
+			continue
+		}
+		if val, ok := bodyJson[actualKey]; ok {
+			bodyJson[newKey] = val
+			delete(bodyJson, actualKey)
+		}
 	}
 
-	new_body_content, _ := json.Marshal(bodyjson)
-	req.Body = ioutil.NopCloser(strings.NewReader(string(new_body_content)))
+	if !bodyEmpty {
+		new_body_content, _ := json.Marshal(bodyJson)
+		req.Body = ioutil.NopCloser(strings.NewReader(string(new_body_content)))
+	}
+
 	req.URL.RawQuery = query.Encode()
 	return nil
 }
