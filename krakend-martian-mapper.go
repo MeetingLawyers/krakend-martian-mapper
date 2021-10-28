@@ -6,9 +6,9 @@ import (
 	"github.com/google/martian/parse"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strings"
-	"log"
 )
 
 func init() {
@@ -17,7 +17,7 @@ func init() {
 
 // MappingConfigJSON to Unmarshal the JSON configuration
 type MappingConfigJSON struct {
-	Fields map[string]string `json:"fields"`
+	Fields map[string]string    `json:"fields"`
 	Scope  []parse.ModifierType `json:"scope"`
 }
 
@@ -25,10 +25,10 @@ type MappingConfigJSON struct {
 type Mapping struct {
 	fields map[string]string
 }
+
 // ModifyRequest modifies the query string of the request with the given key and value.
 func (m *Mapping) ModifyRequest(req *http.Request) error {
-	log.Println("Modify Request")
-
+	log.Println("Modify Request ----------------------")
 	query := req.URL.Query()
 	query.Set("chorizo", "yes")
 
@@ -42,10 +42,8 @@ func (m *Mapping) ModifyRequest(req *http.Request) error {
 	if err != nil {
 		panic(err)
 	}
-	log.Println(m.fields)
 	for actualKey, newKey := range m.fields {
-		log.Println("Modify field ")
-		log.Println(actualKey)
+		log.Println("Key from: " + actualKey + ". Key to: " + newKey)
 
 		if query.Get(actualKey) != "" {
 			query.Set(newKey, query.Get(actualKey))
@@ -56,13 +54,13 @@ func (m *Mapping) ModifyRequest(req *http.Request) error {
 		delete(bodyjson, actualKey)
 	}
 
-	log.Println("End Loop")
 	new_body_content, _ := json.Marshal(bodyjson)
 	req.Body = ioutil.NopCloser(strings.NewReader(string(new_body_content)))
+	log.Println("Body result: " + string(new_body_content))
 
 	// Recibido por referencia (puntero), lo altera directamente
 	req.URL.RawQuery = query.Encode()
-	log.Println("End")
+	log.Println("Query result: " + req.URL.RawQuery)
 	return nil
 }
 
