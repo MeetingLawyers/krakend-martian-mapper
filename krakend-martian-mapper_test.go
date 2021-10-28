@@ -131,3 +131,30 @@ func TestBothMapOverrides(t *testing.T) {
 		t.Errorf("Expected query <%s> different than obtained <%s>", expectedQuery, string(req.URL.RawQuery))
 	}
 }
+
+func TestMapInterface(t *testing.T) {
+	// Arrange
+	cfg := `{"source": "request", "map_fields": { "user_id": "token", "first_name": "firstName" }}`
+	requestBody := `{ 
+	  "user_id": "nerea.munoz+housell@meetinglawyers.com",
+	  "status": 2,
+	  "has_video_call_1to1": true,
+      "first_name": "Nerea"
+	}`
+	url := "http://example.com"
+	requestType := "POST"
+
+	modifier, _ := MapperFromJSON([]byte(cfg))
+	req, _ := http.NewRequest(requestType, url, bytes.NewBuffer( []byte(requestBody) ))
+
+	// Act
+	modifier.RequestModifier().ModifyRequest(req)
+
+	// Assert
+	bodyBytes, _ := io.ReadAll(req.Body)
+	expectedBody := `{"firstName":"Nerea","has_video_call_1to1":true,"status":2,"token":"nerea.munoz+housell@meetinglawyers.com"}`
+	if string(bodyBytes) != expectedBody {
+		t.Errorf("Expected output <%s> different than obtained <%s>", expectedBody, string(bodyBytes))
+	}
+
+}

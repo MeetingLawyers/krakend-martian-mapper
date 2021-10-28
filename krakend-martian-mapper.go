@@ -16,15 +16,15 @@ func init() {
 
 // MappingConfigJSON to Unmarshal the JSON configuration
 type MappingConfigJSON struct {
-	CopyFields map[string]string   `json:"copy_fields"`
-	MapFields map[string]string    `json:"map_fields"`
+	CopyFields map[string]interface{}   `json:"copy_fields"`
+	MapFields map[string]interface{}    `json:"map_fields"`
 	Scope  []parse.ModifierType    `json:"scope"`
 }
 
 // Mapping contains the private and public Marvel API key
 type Mapping struct {
-	copyFields map[string]string
-	mapFields map[string]string
+	copyFields map[string]interface{}
+	mapFields map[string]interface{}
 }
 
 // ModifyRequest modifies the query string of the request with the given key and value.
@@ -35,7 +35,7 @@ func (m *Mapping) ModifyRequest(req *http.Request) error {
 	}
 
 	query := req.URL.Query()
-	var bodyJson = make(map[string]string)
+	var bodyJson = make(map[string]interface{})
 	err = json.Unmarshal(bodyBytes, &bodyJson)
 	var bodyEmpty = false
 	if err != nil {
@@ -43,17 +43,17 @@ func (m *Mapping) ModifyRequest(req *http.Request) error {
 	}
 	for actualKey, newKey := range m.copyFields {
 		if query.Get(actualKey) != "" {
-			query.Set(newKey, query.Get(actualKey))
+			query.Set(newKey.(string), query.Get(actualKey))
 		}
 
 		if bodyEmpty {
 			continue
 		}
-		bodyJson[newKey] = bodyJson[actualKey]
+		bodyJson[newKey.(string)] = bodyJson[actualKey]
 	}
 	for actualKey, newKey := range m.mapFields {
 		if query.Get(actualKey) != "" {
-			query.Set(newKey, query.Get(actualKey))
+			query.Set(newKey.(string), query.Get(actualKey))
 			query.Del(actualKey)
 		}
 
@@ -61,7 +61,7 @@ func (m *Mapping) ModifyRequest(req *http.Request) error {
 			continue
 		}
 		if val, ok := bodyJson[actualKey]; ok {
-			bodyJson[newKey] = val
+			bodyJson[newKey.(string)] = val
 			delete(bodyJson, actualKey)
 		}
 	}
@@ -75,26 +75,14 @@ func (m *Mapping) ModifyRequest(req *http.Request) error {
 	return nil
 }
 
-// MapperNewModifier returns a request modifier that will set the query string
-// at key with the given value. If the query string key already exists all
-// values will be overwritten.
-func MapperNewModifier(copyFields map[string]string, mapFields map[string]string) martian.RequestModifier {
+// MapperNewModifier returns a request modifier
+func MapperNewModifier(copyFields map[string]interface{}, mapFields map[string]interface{}) martian.RequestModifier {
 	return &Mapping{
 		copyFields: copyFields,
 		mapFields: mapFields,
 	}
 }
 
-// MapperFromJSON takes a JSON message as a byte slice and returns
-// a querystring.modifier and an error.
-// a body.modifier
-//
-// Example JSON:
-// {
-//  "public": "apikey",
-//  "private": "apikey",
-//  "scope": ["request", "response"]
-// }
 func MapperFromJSON(b []byte) (*parse.Result, error) {
 	configByteSlice := &MappingConfigJSON{}
 
