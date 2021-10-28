@@ -1,4 +1,4 @@
-package querystring
+package mapper
 
 import (
 	"encoding/json"
@@ -6,51 +6,49 @@ import (
 	"github.com/google/martian/parse"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strings"
 )
 
 func init() {
-	parse.Register("querystring.JSONMapper", MapperFromJSON)
+	parse.Register("mapper.JSONMapper", MapperFromJSON)
 }
 
 // MappingConfigJSON to Unmarshal the JSON configuration
 type MappingConfigJSON struct {
-	Fields map[string]string    `json:"fields"`
-	Scope  []parse.ModifierType `json:"scope"`
+	CopyFields map[string]string   `json:"copy_fields"`
+	MapFields map[string]string    `json:"map_fields"`
+	Scope  []parse.ModifierType    `json:"scope"`
 }
 
 // Mapping contains the private and public Marvel API key
 type Mapping struct {
-	fields map[string]string
+	copyFields map[string]string
+	mapFields map[string]string
 }
 
 // ModifyRequest modifies the query string of the request with the given key and value.
 func (m *Mapping) ModifyRequest(req *http.Request) error {
-	log.Println("Request Modifier ----------------------")
-
 	bodyBytes, err := io.ReadAll(req.Body)
 	if err != nil {
 		panic(err)
 	}
 
 	query := req.URL.Query()
-	log.Println("Body original:" + string(bodyBytes))
-	log.Println("Query original:" + string(req.URL.RawQuery))
-
-	log.Println("Start Modifier ------------------------")
-	query.Set("chorizo", "yes")
-
 
 	var bodyjson = make(map[string]string)
 	err = json.Unmarshal(bodyBytes, &bodyjson)
 	if err != nil {
 		panic(err)
 	}
-	for actualKey, newKey := range m.fields {
-		log.Println("Key from: " + actualKey + ". Key to: " + newKey)
+	for actualKey, newKey := range m.copyFields {
+		if query.Get(actualKey) != "" {
+			query.Set(newKey, query.Get(actualKey))
+		}
 
+		bodyjson[newKey] = bodyjson[actualKey]
+	}
+	for actualKey, newKey := range m.mapFields {
 		if query.Get(actualKey) != "" {
 			query.Set(newKey, query.Get(actualKey))
 			query.Del(actualKey)
@@ -62,20 +60,17 @@ func (m *Mapping) ModifyRequest(req *http.Request) error {
 
 	new_body_content, _ := json.Marshal(bodyjson)
 	req.Body = ioutil.NopCloser(strings.NewReader(string(new_body_content)))
-	log.Println("Body result: " + string(new_body_content))
-
-	// Recibido por referencia (puntero), lo altera directamente
 	req.URL.RawQuery = query.Encode()
-	log.Println("Query result: " + req.URL.RawQuery)
 	return nil
 }
 
 // MapperNewModifier returns a request modifier that will set the query string
 // at key with the given value. If the query string key already exists all
 // values will be overwritten.
-func MapperNewModifier(mappingFields map[string]string) martian.RequestModifier {
+func MapperNewModifier(copyFields map[string]string, mapFields map[string]string) martian.RequestModifier {
 	return &Mapping{
-		fields: mappingFields,
+		copyFields: copyFields,
+		mapFields: mapFields,
 	}
 }
 
@@ -96,5 +91,5 @@ func MapperFromJSON(b []byte) (*parse.Result, error) {
 		return nil, err
 	}
 
-	return parse.NewResult(MapperNewModifier(configByteSlice.Fields), configByteSlice.Scope)
+	return parse.NewResult(MapperNewModifier(configByteSlice.CopyFields, configByteSlice.MapFields), configByteSlice.Scope)
 }
