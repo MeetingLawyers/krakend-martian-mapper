@@ -1,4 +1,4 @@
-module meetinglawyers/mapper
+module github.com/meetinglawyers/krakend-martian-mapper
 
 go 1.16
 
