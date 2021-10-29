@@ -136,10 +136,11 @@ func TestMapInterface(t *testing.T) {
 	// Arrange
 	cfg := `{"source": "request", "map_fields": { "user_id": "token", "first_name": "firstName" }}`
 	requestBody := `{ 
-	  "user_id": "nerea.munoz+housell@meetinglawyers.com",
+	  "user_id": "test@meetinglawyers.com",
 	  "status": 2,
 	  "has_video_call_1to1": true,
-      "first_name": "Nerea"
+      "first_name": "Test",
+	  "last_name": null
 	}`
 	url := "http://example.com"
 	requestType := "POST"
@@ -152,7 +153,7 @@ func TestMapInterface(t *testing.T) {
 
 	// Assert
 	bodyBytes, _ := io.ReadAll(req.Body)
-	expectedBody := `{"firstName":"Nerea","has_video_call_1to1":true,"status":2,"token":"nerea.munoz+housell@meetinglawyers.com"}`
+	expectedBody := `{"firstName":"Test","has_video_call_1to1":true,"last_name":null,"status":2,"token":"test@meetinglawyers.com"}`
 	if string(bodyBytes) != expectedBody {
 		t.Errorf("Expected output <%s> different than obtained <%s>", expectedBody, string(bodyBytes))
 	}
